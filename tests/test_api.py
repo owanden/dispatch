@@ -16,7 +16,7 @@ class ApiTests(unittest.TestCase):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.store = EventStore(Path(self.directory.name) / "events.db")
-        self.server = create_server(self.store, 0)
+        self.server = create_server(self.store, 0, ["https://example.com"])
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
         self.addCleanup(self.stop_server)
@@ -101,6 +101,29 @@ class ApiTests(unittest.TestCase):
                     response.read()
                 finally:
                     connection.close()
+
+    def test_unlisted_origins_are_rejected_without_reserving_key(self):
+        for destination in ["https://other.example/hook", "https://sub.example.com/hook", "https://example.com:8443/hook", "https://example.com.evil.test/hook"]:
+            with self.subTest(destination=destination):
+                body = json.dumps({"destination": destination, "payload": {}})
+                self.assertEqual(self.request(body=body), (403, {"error": "destination_not_allowed"}))
+        self.assertEqual(self.request()[0], 202)
+
+    def test_unconfigured_server_denies_enqueue(self):
+        server = create_server(self.store, 0)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        connection = http.client.HTTPConnection(*server.server_address, timeout=5)
+        try:
+            connection.request("POST", "/events", json.dumps({"destination": "https://example.com/hook", "payload": {}}), {"Content-Type": "application/json", "Idempotency-Key": "order-1"})
+            response = connection.getresponse()
+            self.assertEqual(response.status, 403)
+            self.assertEqual(json.loads(response.read()), {"error": "destination_not_allowed"})
+        finally:
+            connection.close()
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=5)
 
     def test_storage_failure_returns_unavailable(self):
         with patch.object(self.store, "enqueue", side_effect=sqlite3.OperationalError("private database path")):

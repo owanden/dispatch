@@ -6,6 +6,7 @@ from dataclasses import asdict
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlsplit
 
+from dispatch.destinations import DestinationPolicy, parse_destination
 from dispatch.store import EventStore, IdempotencyConflict
 
 
@@ -13,18 +14,9 @@ MAX_BODY = 65536
 
 
 def valid_destination(value):
-    if not isinstance(value, str) or any(character.isspace() for character in value):
-        return False
     try:
-        parsed = urlsplit(value)
-        return (
-            parsed.scheme == "https"
-            and bool(parsed.hostname)
-            and parsed.username is None
-            and parsed.password is None
-            and not parsed.fragment
-            and (parsed.port is None or 1 <= parsed.port <= 65535)
-        )
+        parse_destination(value)
+        return True
     except ValueError:
         return False
 
@@ -33,7 +25,9 @@ def reject_constant(value):
     raise ValueError("invalid JSON constant")
 
 
-def create_server(store, port=8080):
+def create_server(store, port=8080, allowed_origins=()):
+    policy = DestinationPolicy(allowed_origins)
+
     class Handler(BaseHTTPRequestHandler):
         def setup(self):
             super().setup()
@@ -107,6 +101,9 @@ def create_server(store, port=8080):
                     or not isinstance(body["payload"], dict)
                 ):
                     raise ValueError("invalid event")
+                if not policy.allows(body["destination"]):
+                    self.respond(403, {"error": "destination_not_allowed"})
+                    return
                 event = store.enqueue(keys[0], body["destination"], body["payload"])
             except IdempotencyConflict:
                 self.respond(409, {"error": "idempotency_conflict"})
@@ -126,8 +123,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--db", default="events.db")
     parser.add_argument("--port", type=int, default=8080)
+    parser.add_argument("--allow-origin", action="append", default=[])
     args = parser.parse_args()
-    with create_server(EventStore(args.db), args.port) as server:
+    with create_server(EventStore(args.db), args.port, args.allow_origin) as server:
         try:
             server.serve_forever()
         except KeyboardInterrupt:
