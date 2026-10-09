@@ -6,6 +6,18 @@ from urllib.parse import urlsplit
 LABEL = re.compile(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?", re.ASCII)
 
 
+def public_address(value):
+    address = ipaddress.ip_address(value)
+    if (
+        not address.is_global
+        or address.is_multicast
+        or getattr(address, "is_site_local", False)
+        or getattr(address, "ipv4_mapped", None) is not None
+    ):
+        raise ValueError("nonpublic destination address")
+    return str(address)
+
+
 def parse_destination(value):
     if (
         not isinstance(value, str)
@@ -38,14 +50,7 @@ def parse_destination(value):
         ):
             raise ValueError("invalid destination host")
     else:
-        if (
-            not address.is_global
-            or address.is_multicast
-            or getattr(address, "is_site_local", False)
-            or getattr(address, "ipv4_mapped", None) is not None
-        ):
-            raise ValueError("nonpublic destination address")
-        host = str(address)
+        host = public_address(str(address))
     return parsed, (host, port)
 
 

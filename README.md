@@ -15,4 +15,6 @@ The API binds to `127.0.0.1`. `POST /events` accepts a JSON object with `destina
 
 Enqueueing requires an explicitly permitted HTTPS origin. Repeat `--allow-origin` for multiple origins. Each entry contains a hostname and optional port, without a path or query. Hostnames are case-insensitive, and omitted ports equal 443. Subdomains and other ports require separate entries. Unlisted origins return 403; invalid destinations return 400. No configured origins means all enqueue requests are denied. Private IP literals, local hostnames, credentials, fragments, and ambiguous URL syntax are rejected.
 
-Delivery workers are pending. Destinations are stored without making outbound requests. DNS resolution checks and redirect handling must be enforced by the future delivery transport; the origin policy alone does not prevent DNS rebinding. Authentication is pending; the API is intended for local use.
+The delivery transport rechecks the origin policy, rejects DNS answers containing nonpublic addresses, and connects directly to a validated address while verifying the original TLS hostname. It sends JSON with an X-Dispatch-Event-ID header and refuses redirects. Each attempt resolves the destination again. Socket operations use a configurable timeout (five seconds by default); system DNS resolution and the total request duration do not yet have a wall-clock deadline.
+
+Delivery workers and durable attempt recording are pending. The API only stores events; it does not invoke the transport. Authentication is pending; the API is intended for local use.
