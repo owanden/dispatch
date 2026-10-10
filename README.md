@@ -17,4 +17,6 @@ Enqueueing requires an explicitly permitted HTTPS origin. Repeat `--allow-origin
 
 The delivery transport rechecks the origin policy, rejects DNS answers containing nonpublic addresses, and connects directly to a validated address while verifying the original TLS hostname. It sends JSON with an X-Dispatch-Event-ID header and refuses redirects. Each attempt resolves the destination again. Socket operations use a configurable timeout (five seconds by default); system DNS resolution and the total request duration do not yet have a wall-clock deadline.
 
-Delivery workers and durable attempt recording are pending. The API only stores events; it does not invoke the transport. Authentication is pending; the API is intended for local use.
+Storage supports transactional pending-event claims and durable delivery attempts. A claim moves one event to delivering and creates its unfinished attempt together. Completing an attempt records an HTTP status or error category and updates the event to delivered for 2xx responses or failed otherwise. Duplicate completion is rejected. Existing event databases are extended without replacing their records. Claims do not expire yet; interrupted attempts remain delivering until crash recovery is implemented.
+
+Delivery workers, automatic retries, and crash recovery are pending. The API only stores events; it does not invoke the transport. Authentication is pending; the API is intended for local use.
