@@ -8,6 +8,7 @@ Requires Python 3.12 or newer. No external dependencies.
 
 ```sh
 python -m dispatch.api --db events.db --port 8080 --allow-origin https://example.com
+python -m dispatch.worker --db events.db --allow-origin https://example.com --timeout 5
 python -m unittest discover -s tests -v
 ```
 
@@ -19,4 +20,6 @@ The delivery transport rechecks the origin policy, rejects DNS answers containin
 
 Storage supports transactional pending-event claims and durable delivery attempts. A claim moves one event to delivering and creates its unfinished attempt together. Completing an attempt records an HTTP status or error category and updates the event to delivered for 2xx responses or failed otherwise. Duplicate completion is rejected. Existing event databases are extended without replacing their records. Claims do not expire yet; interrupted attempts remain delivering until crash recovery is implemented.
 
-Delivery workers, automatic retries, and crash recovery are pending. The API only stores events; it does not invoke the transport. Authentication is pending; the API is intended for local use.
+The worker command processes at most one pending event per invocation and prints whether an event was processed. It requires its own explicit permitted origins, rechecks stored destinations, invokes the transport, and records HTTP outcomes or fixed error categories without storing raw exception text. Failed events are not retried automatically. If outcome storage fails or execution is interrupted, the claim remains unfinished; repeating the command does not immediately resend that event.
+
+Automatic retries, claim expiration, and crash recovery are pending. An unfinished claim does not prove whether the receiver accepted the request. The API only stores events; it does not invoke the transport. Authentication is pending; the API is intended for local use.
