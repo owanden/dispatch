@@ -8,10 +8,15 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import patch
 
+from dispatch.delivery import delivery_outcome
 from dispatch.destinations import DestinationPolicy
 from dispatch.store import EventStore
 from dispatch.transport import DeliveryRejected
 from dispatch.worker import Worker
+
+
+def inline_delivery(event, policy, timeout, deadline):
+    return delivery_outcome(event, policy, timeout)
 
 
 class WorkerTests(unittest.TestCase):
@@ -21,19 +26,19 @@ class WorkerTests(unittest.TestCase):
         self.path = Path(self.directory.name) / "events.db"
         self.store = EventStore(self.path)
         self.policy = DestinationPolicy(["https://example.com"])
-        self.worker = Worker(self.store, self.policy, timeout=2)
+        self.worker = Worker(self.store, self.policy, timeout=2, executor=inline_delivery)
 
     def enqueue(self, key="order-1"):
         return self.store.enqueue(key, "https://example.com/hook", {"order": 1})
 
     def test_empty_queue_does_not_invoke_transport(self):
-        with patch("dispatch.worker.deliver") as transport:
+        with patch("dispatch.delivery.deliver") as transport:
             self.assertFalse(self.worker.process_next())
             transport.assert_not_called()
 
     def test_success_records_status_and_persists_after_restart(self):
         event = self.enqueue()
-        with patch("dispatch.worker.deliver", return_value=204) as transport:
+        with patch("dispatch.delivery.deliver", return_value=204) as transport:
             self.assertTrue(self.worker.process_next())
             claimed_event = transport.call_args.args[0]
             self.assertEqual(claimed_event.id, event.id)
@@ -46,7 +51,7 @@ class WorkerTests(unittest.TestCase):
 
     def test_receiver_failure_records_http_status(self):
         event = self.enqueue()
-        with patch("dispatch.worker.deliver", return_value=503):
+        with patch("dispatch.delivery.deliver", return_value=503):
             self.assertTrue(self.worker.process_next())
         self.assertEqual(self.store.get(event.id).status, "failed")
         self.assertEqual(self.store.attempts(event.id)[0].status_code, 503)
@@ -64,7 +69,7 @@ class WorkerTests(unittest.TestCase):
         ]
         for index, (error, expected) in enumerate(errors):
             event = self.enqueue(str(index))
-            with self.subTest(error=error), patch("dispatch.worker.deliver", side_effect=error):
+            with self.subTest(error=error), patch("dispatch.delivery.deliver", side_effect=error):
                 self.assertTrue(self.worker.process_next())
                 attempt = self.store.attempts(event.id)[0]
                 self.assertEqual(attempt.error, expected)
@@ -81,8 +86,8 @@ class WorkerTests(unittest.TestCase):
     def test_concurrent_workers_deliver_one_claim_once(self):
         event = self.enqueue()
         def process(_):
-            return Worker(EventStore(self.path), self.policy).process_next()
-        with patch("dispatch.worker.deliver", return_value=204) as transport, ThreadPoolExecutor(max_workers=8) as executor:
+            return Worker(EventStore(self.path), self.policy, executor=inline_delivery).process_next()
+        with patch("dispatch.delivery.deliver", return_value=204) as transport, ThreadPoolExecutor(max_workers=8) as executor:
             results = list(executor.map(process, range(24)))
             self.assertEqual(sum(results), 1)
             transport.assert_called_once()
@@ -90,18 +95,18 @@ class WorkerTests(unittest.TestCase):
 
     def test_outcome_storage_failure_preserves_unfinished_claim(self):
         event = self.enqueue()
-        with patch("dispatch.worker.deliver", return_value=204), patch.object(self.store, "finish_attempt", side_effect=sqlite3.OperationalError("disk full")):
+        with patch("dispatch.delivery.deliver", return_value=204), patch.object(self.store, "finish_attempt", side_effect=sqlite3.OperationalError("disk full")):
             with self.assertRaises(sqlite3.OperationalError):
                 self.worker.process_next()
         self.assertEqual(self.store.get(event.id).status, "delivering")
         self.assertIsNone(self.store.attempts(event.id)[0].finished_at)
-        with patch("dispatch.worker.deliver") as transport:
+        with patch("dispatch.delivery.deliver") as transport:
             self.assertFalse(self.worker.process_next())
             transport.assert_not_called()
 
     def test_unexpected_failure_is_not_converted_to_completed_attempt(self):
         event = self.enqueue()
-        with patch("dispatch.worker.deliver", side_effect=RuntimeError("unexpected failure")):
+        with patch("dispatch.delivery.deliver", side_effect=RuntimeError("unexpected failure")):
             with self.assertRaises(RuntimeError):
                 self.worker.process_next()
         self.assertEqual(self.store.get(event.id).status, "delivering")
