@@ -42,7 +42,7 @@ class DeliveryDeadlineTests(unittest.TestCase):
                 return _run_command([sys.executable, "-c", "import time; time.sleep(30)"], {}, deadline)
             worker = Worker(store, DestinationPolicy(["https://example.com"]), deadline=0.2, executor=stalled)
             self.assertTrue(worker.process_next())
-            self.assertEqual(store.get(event.id).status, "failed")
+            self.assertEqual(store.get(event.id).status, "pending")
             self.assertEqual(store.attempts(event.id)[0].error, "delivery_deadline_exceeded")
             self.assertIsNotNone(store.attempts(event.id)[0].finished_at)
 

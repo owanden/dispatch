@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 from dispatch.delivery import delivery_outcome
 from dispatch.destinations import DestinationPolicy
+from dispatch.retries import RetryPolicy
 from dispatch.store import EventStore
 from dispatch.transport import DeliveryRejected
 from dispatch.worker import Worker
@@ -26,7 +27,7 @@ class WorkerTests(unittest.TestCase):
         self.path = Path(self.directory.name) / "events.db"
         self.store = EventStore(self.path)
         self.policy = DestinationPolicy(["https://example.com"])
-        self.worker = Worker(self.store, self.policy, timeout=2, executor=inline_delivery)
+        self.worker = Worker(self.store, self.policy, timeout=2, executor=inline_delivery, retry_policy=RetryPolicy(max_attempts=1))
 
     def enqueue(self, key="order-1"):
         return self.store.enqueue(key, "https://example.com/hook", {"order": 1})

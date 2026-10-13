@@ -1,5 +1,6 @@
 import json
 import sqlite3
+import time
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -40,8 +41,9 @@ class Attempt:
 
 
 class EventStore:
-    def __init__(self, path: str | Path):
+    def __init__(self, path: str | Path, *, clock=time.time):
         self.path = str(path)
+        self.clock = clock
         with self._connect() as connection:
             connection.execute("""
                 CREATE TABLE IF NOT EXISTS events (
@@ -73,6 +75,12 @@ class EventStore:
             """)
             connection.execute("CREATE UNIQUE INDEX IF NOT EXISTS active_attempt ON attempts(event_id) WHERE finished_at IS NULL")
             connection.execute("CREATE INDEX IF NOT EXISTS pending_events ON events(status, created_at)")
+            connection.execute("""
+                CREATE TABLE IF NOT EXISTS retry_schedule (
+                    event_id TEXT PRIMARY KEY REFERENCES events(id),
+                    not_before REAL NOT NULL CHECK (not_before >= 0)
+                )
+            """)
 
     @contextmanager
     def _connect(self):
@@ -116,17 +124,21 @@ class EventStore:
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             row = connection.execute(
-                "SELECT * FROM events WHERE status = 'pending' ORDER BY created_at, rowid LIMIT 1"
+                """SELECT events.* FROM events LEFT JOIN retry_schedule ON retry_schedule.event_id = events.id
+                WHERE events.status = 'pending' AND COALESCE(retry_schedule.not_before, 0) <= ?
+                ORDER BY COALESCE(retry_schedule.not_before, 0), events.created_at, events.rowid LIMIT 1""",
+                (self.clock(),),
             ).fetchone()
             if row is None:
                 return None
             attempt_id = str(uuid4())
             connection.execute("UPDATE events SET status = 'delivering' WHERE id = ?", (row["id"],))
+            connection.execute("DELETE FROM retry_schedule WHERE event_id = ?", (row["id"],))
             connection.execute("INSERT INTO attempts (id, event_id) VALUES (?, ?)", (attempt_id, row["id"]))
             claimed = connection.execute("SELECT * FROM events WHERE id = ?", (row["id"],)).fetchone()
             return DeliveryClaim(self._event(claimed), attempt_id)
 
-    def finish_attempt(self, attempt_id: str, *, status_code: int | None = None, error: str | None = None):
+    def finish_attempt(self, attempt_id: str, *, status_code: int | None = None, error: str | None = None, retry_policy=None):
         if (status_code is None) == (error is None):
             raise ValueError("exactly one outcome is required")
         if status_code is not None and (type(status_code) is not int or not 100 <= status_code <= 599):
@@ -145,7 +157,18 @@ class EventStore:
             connection.execute("""
                 UPDATE attempts SET finished_at = CURRENT_TIMESTAMP, status_code = ?, error = ? WHERE id = ?
             """, (status_code, error, attempt_id))
+            if retry_policy is not None:
+                count = connection.execute("SELECT COUNT(*) FROM attempts WHERE event_id = ?", (row["event_id"],)).fetchone()[0]
+                delay = retry_policy.next_delay(count, status_code=status_code, error=error)
+                if delay is not None:
+                    status = "pending"
+                    connection.execute("INSERT INTO retry_schedule (event_id, not_before) VALUES (?, ?)", (row["event_id"], self.clock() + delay))
             connection.execute("UPDATE events SET status = ? WHERE id = ?", (status, row["event_id"]))
+
+    def retry_at(self, event_id: str) -> float | None:
+        with self._connect() as connection:
+            row = connection.execute("SELECT not_before FROM retry_schedule WHERE event_id = ?", (event_id,)).fetchone()
+            return row["not_before"] if row else None
 
     def attempts(self, event_id: str) -> list[Attempt]:
         with self._connect() as connection:
