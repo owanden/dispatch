@@ -1,6 +1,7 @@
 import http.client
 import json
 import math
+import os
 import socket
 import ssl
 import subprocess
@@ -49,11 +50,12 @@ def delivery_outcome(event, policy, timeout):
 
 def _run_command(command, request, deadline):
     validate_timeout(deadline)
+    isolation = {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if os.name == "nt" else {"start_new_session": True}
     try:
         result = subprocess.run(
             command, input=json.dumps(request, allow_nan=False), capture_output=True,
             text=True, timeout=deadline, check=True,
-            cwd=Path(__file__).resolve().parent.parent,
+            cwd=Path(__file__).resolve().parent.parent, **isolation,
         )
     except subprocess.TimeoutExpired:
         return {"error": "delivery_deadline_exceeded"}
