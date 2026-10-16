@@ -2,7 +2,7 @@ import math
 from dataclasses import dataclass
 
 
-TRANSIENT_ERRORS = frozenset({"request_timeout", "delivery_deadline_exceeded", "dns_error", "connection_error"})
+TRANSIENT_ERRORS = frozenset({"request_timeout", "delivery_deadline_exceeded", "dns_error", "connection_error", "lease_expired"})
 
 
 @dataclass(frozen=True)

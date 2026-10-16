@@ -33,7 +33,8 @@ class Worker:
         self.retry_policy = RetryPolicy() if retry_policy is None else retry_policy
 
     def process_next(self):
-        claim = self.store.claim_next()
+        self.store.recover_expired(retry_policy=self.retry_policy)
+        claim = self.store.claim_next(lease_seconds=self.deadline + 30)
         if claim is None:
             return False
         outcome = self.executor(claim.event, self.policy, timeout=self.timeout, deadline=self.deadline)

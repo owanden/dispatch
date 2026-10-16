@@ -1,4 +1,5 @@
 import json
+import math
 import sqlite3
 import time
 from contextlib import contextmanager
@@ -82,6 +83,14 @@ class EventStore:
                 )
             """)
 
+            connection.execute("""
+                CREATE TABLE IF NOT EXISTS claim_leases (
+                    attempt_id TEXT PRIMARY KEY REFERENCES attempts(id),
+                    expires_at REAL NOT NULL
+                )
+            """)
+            connection.execute("CREATE INDEX IF NOT EXISTS lease_expiry ON claim_leases(expires_at)")
+
     @contextmanager
     def _connect(self):
         connection = sqlite3.connect(self.path, timeout=10)
@@ -120,7 +129,9 @@ class EventStore:
             row = connection.execute("SELECT * FROM events WHERE id = ?", (event_id,)).fetchone()
             return self._event(row) if row else None
 
-    def claim_next(self) -> DeliveryClaim | None:
+    def claim_next(self, *, lease_seconds=None) -> DeliveryClaim | None:
+        if lease_seconds is not None and (type(lease_seconds) not in (int, float) or not math.isfinite(lease_seconds) or lease_seconds <= 0):
+            raise ValueError("lease duration must be positive and finite")
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             row = connection.execute(
@@ -135,6 +146,8 @@ class EventStore:
             connection.execute("UPDATE events SET status = 'delivering' WHERE id = ?", (row["id"],))
             connection.execute("DELETE FROM retry_schedule WHERE event_id = ?", (row["id"],))
             connection.execute("INSERT INTO attempts (id, event_id) VALUES (?, ?)", (attempt_id, row["id"]))
+            if lease_seconds is not None:
+                connection.execute("INSERT INTO claim_leases (attempt_id, expires_at) VALUES (?, ?)", (attempt_id, self.clock() + lease_seconds))
             claimed = connection.execute("SELECT * FROM events WHERE id = ?", (row["id"],)).fetchone()
             return DeliveryClaim(self._event(claimed), attempt_id)
 
@@ -145,25 +158,44 @@ class EventStore:
             raise ValueError("invalid HTTP status")
         if error is not None and (not isinstance(error, str) or not error.strip() or len(error) > 256):
             raise ValueError("invalid error category")
-        status = "delivered" if status_code is not None and 200 <= status_code < 300 else "failed"
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
-            row = connection.execute("""
-                SELECT attempts.event_id FROM attempts JOIN events ON events.id = attempts.event_id
-                WHERE attempts.id = ? AND attempts.finished_at IS NULL AND events.status = 'delivering'
-            """, (attempt_id,)).fetchone()
-            if row is None:
-                raise AttemptConflict(attempt_id)
-            connection.execute("""
-                UPDATE attempts SET finished_at = CURRENT_TIMESTAMP, status_code = ?, error = ? WHERE id = ?
-            """, (status_code, error, attempt_id))
-            if retry_policy is not None:
-                count = connection.execute("SELECT COUNT(*) FROM attempts WHERE event_id = ?", (row["event_id"],)).fetchone()[0]
-                delay = retry_policy.next_delay(count, status_code=status_code, error=error)
-                if delay is not None:
-                    status = "pending"
-                    connection.execute("INSERT INTO retry_schedule (event_id, not_before) VALUES (?, ?)", (row["event_id"], self.clock() + delay))
-            connection.execute("UPDATE events SET status = ? WHERE id = ?", (status, row["event_id"]))
+            self._finish_attempt(connection, attempt_id, status_code, error, retry_policy)
+
+    def _finish_attempt(self, connection, attempt_id, status_code, error, retry_policy):
+        status = "delivered" if status_code is not None and 200 <= status_code < 300 else "failed"
+        row = connection.execute("""
+            SELECT attempts.event_id FROM attempts JOIN events ON events.id = attempts.event_id
+            WHERE attempts.id = ? AND attempts.finished_at IS NULL AND events.status = 'delivering'
+        """, (attempt_id,)).fetchone()
+        if row is None:
+            raise AttemptConflict(attempt_id)
+        connection.execute("""
+            UPDATE attempts SET finished_at = CURRENT_TIMESTAMP, status_code = ?, error = ? WHERE id = ?
+        """, (status_code, error, attempt_id))
+        if retry_policy is not None:
+            count = connection.execute("SELECT COUNT(*) FROM attempts WHERE event_id = ?", (row["event_id"],)).fetchone()[0]
+            delay = retry_policy.next_delay(count, status_code=status_code, error=error)
+            if delay is not None:
+                status = "pending"
+                connection.execute("INSERT INTO retry_schedule (event_id, not_before) VALUES (?, ?)", (row["event_id"], self.clock() + delay))
+        connection.execute("UPDATE events SET status = ? WHERE id = ?", (status, row["event_id"]))
+        connection.execute("DELETE FROM claim_leases WHERE attempt_id = ?", (attempt_id,))
+
+    def recover_expired(self, *, retry_policy=None):
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            rows = connection.execute("""
+                SELECT claim_leases.attempt_id FROM claim_leases
+                JOIN attempts ON attempts.id = claim_leases.attempt_id
+                JOIN events ON events.id = attempts.event_id
+                WHERE claim_leases.expires_at <= ? AND attempts.finished_at IS NULL
+                    AND events.status = 'delivering'
+                ORDER BY claim_leases.expires_at LIMIT 100
+            """, (self.clock(),)).fetchall()
+            for row in rows:
+                self._finish_attempt(connection, row["attempt_id"], None, "lease_expired", retry_policy)
+            return len(rows)
 
     def retry_at(self, event_id: str) -> float | None:
         with self._connect() as connection:

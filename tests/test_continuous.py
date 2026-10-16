@@ -42,7 +42,7 @@ class ContinuousWorkerTests(unittest.TestCase):
 
     def test_idle_shutdown_wakes_without_waiting_for_poll_interval(self):
         entered = Event()
-        def empty():
+        def empty(**kwargs):
             entered.set()
             return None
         worker = Worker(self.store, self.policy)
