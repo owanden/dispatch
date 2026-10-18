@@ -197,6 +197,26 @@ class EventStore:
                 self._finish_attempt(connection, row["attempt_id"], None, "lease_expired", retry_policy)
             return len(rows)
 
+    def delivery_state(self, event_id: str):
+        with self._connect() as connection:
+            connection.execute("BEGIN")
+            event = connection.execute("SELECT id, status FROM events WHERE id = ?", (event_id,)).fetchone()
+            if event is None:
+                return None
+            retry = connection.execute("SELECT not_before FROM retry_schedule WHERE event_id = ?", (event_id,)).fetchone()
+            count = connection.execute("SELECT COUNT(*) FROM attempts WHERE event_id = ?", (event_id,)).fetchone()[0]
+            rows = connection.execute("""
+                SELECT attempts.*, claim_leases.expires_at AS lease_expires_at FROM attempts
+                LEFT JOIN claim_leases ON claim_leases.attempt_id = attempts.id
+                WHERE attempts.event_id = ? ORDER BY attempts.rowid DESC LIMIT 100
+            """, (event_id,)).fetchall()
+            return {
+                "event_id": event["id"], "status": event["status"],
+                "retry_at": retry["not_before"] if retry else None,
+                "attempt_count": count, "attempts_truncated": count > len(rows),
+                "attempts": [dict(row) for row in reversed(rows)],
+            }
+
     def retry_at(self, event_id: str) -> float | None:
         with self._connect() as connection:
             row = connection.execute("SELECT not_before FROM retry_schedule WHERE event_id = ?", (event_id,)).fetchone()

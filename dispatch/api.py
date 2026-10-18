@@ -53,6 +53,15 @@ def create_server(store, port=8080, allowed_origins=()):
             if parts.query or not parts.path.startswith("/events/"):
                 self.respond(404, {"error": "not_found"})
                 return
+            path = parts.path.split("/")
+            if len(path) == 4 and path[2] and path[3] == "delivery":
+                try:
+                    state = store.delivery_state(path[2])
+                except sqlite3.Error:
+                    self.respond(503, {"error": "storage_unavailable"})
+                    return
+                self.respond(200, state) if state else self.respond(404, {"error": "not_found"})
+                return
             event_id = parts.path.removeprefix("/events/")
             try:
                 event = store.get(event_id)
