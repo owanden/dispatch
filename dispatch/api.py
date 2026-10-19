@@ -50,6 +50,14 @@ def create_server(store, port=8080, allowed_origins=()):
             except ValueError:
                 self.respond(404, {"error": "not_found"})
                 return
+            if parts.path == "/metrics" and not parts.query:
+                try:
+                    metrics = store.queue_metrics()
+                except sqlite3.Error:
+                    self.respond(503, {"error": "storage_unavailable"})
+                    return
+                self.respond(200, metrics)
+                return
             if parts.query or not parts.path.startswith("/events/"):
                 self.respond(404, {"error": "not_found"})
                 return

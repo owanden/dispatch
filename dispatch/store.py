@@ -197,6 +197,35 @@ class EventStore:
                 self._finish_attempt(connection, row["attempt_id"], None, "lease_expired", retry_policy)
             return len(rows)
 
+    def queue_metrics(self):
+        with self._connect() as connection:
+            connection.execute("BEGIN")
+            now = self.clock()
+            events = {status: 0 for status in ("pending", "delivering", "delivered", "failed")}
+            for row in connection.execute("SELECT status, COUNT(*) AS count FROM events GROUP BY status"):
+                events[row["status"]] = row["count"]
+            ready = connection.execute("""
+                SELECT COUNT(*) AS count, MIN(CAST(strftime('%s', events.created_at) AS REAL)) AS oldest
+                FROM events LEFT JOIN retry_schedule ON retry_schedule.event_id = events.id
+                WHERE events.status = 'pending' AND COALESCE(retry_schedule.not_before, 0) <= ?
+            """, (now,)).fetchone()
+            attempts = connection.execute("""
+                SELECT COALESCE(SUM(finished_at IS NULL), 0) AS unfinished,
+                    COALESCE(SUM(error = 'lease_expired'), 0) AS recovered FROM attempts
+            """).fetchone()
+            expired = connection.execute("""
+                SELECT COUNT(*) FROM claim_leases JOIN attempts ON attempts.id = claim_leases.attempt_id
+                JOIN events ON events.id = attempts.event_id
+                WHERE claim_leases.expires_at <= ? AND attempts.finished_at IS NULL AND events.status = 'delivering'
+            """, (now,)).fetchone()[0]
+            return {
+                "captured_at": now, "events": events,
+                "ready_events": ready["count"], "scheduled_retries": events["pending"] - ready["count"],
+                "unfinished_attempts": attempts["unfinished"], "expired_leases": expired,
+                "recovered_attempts": attempts["recovered"],
+                "oldest_ready_age_seconds": max(0, now - ready["oldest"]) if ready["oldest"] is not None else None,
+            }
+
     def delivery_state(self, event_id: str):
         with self._connect() as connection:
             connection.execute("BEGIN")
