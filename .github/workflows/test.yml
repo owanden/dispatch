@@ -11,3 +11,20 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m unittest discover -s tests -v
+  package:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip wheel --no-deps --wheel-dir dist .
+      - run: python tools/smoke_package.py dist/owanden_dispatch-0.1.0-py3-none-any.whl
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dispatch-wheel-${{ runner.os }}
+          path: dist/*.whl
+          if-no-files-found: error

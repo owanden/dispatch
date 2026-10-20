@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools==80.9.0", "wheel==0.45.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "owanden-dispatch"
+version = "0.1.0"
+description = "Durable webhook delivery with SQLite-backed retries and attempt history"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/owanden/dispatch"
+
+[project.scripts]
+dispatch-api = "dispatch.api:main"
+dispatch-worker = "dispatch.worker:main"
+
+[tool.setuptools]
+packages = ["dispatch"]
+include-package-data = false

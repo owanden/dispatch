@@ -47,3 +47,5 @@ python -m unittest discover -s tests -v
 [Operations reference](docs/operations.md) covers API routes, worker commands, timeouts, retries, recovery limits, metrics, and structured logs. Tests include a real local HTTPS receiver, certificate rejection, DNS checks, concurrency, injected storage failures, and retry persistence.
 
 [Local delivery measurements](docs/benchmarks.md) include repeatable baseline/failure commands, raw observations, timing definitions, and limitations.
+
+[Build and install a wheel](docs/installation.md) to run `dispatch-api` and `dispatch-worker` outside the checkout. CI checks isolated installation on Windows and Linux.
