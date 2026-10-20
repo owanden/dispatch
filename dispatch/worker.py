@@ -10,6 +10,7 @@ from dispatch.delivery import run_delivery, validate_timeout
 from dispatch.destinations import DestinationPolicy
 from dispatch.retries import RetryPolicy
 from dispatch.store import EventStore
+from dispatch.signatures import load_signing_key
 
 
 logger = logging.getLogger("dispatch.worker")
@@ -34,6 +35,7 @@ def shutdown_signals(stop_event):
 
 class Worker:
     def __init__(self, store, policy, timeout=5, deadline=15, *, executor=run_delivery, retry_policy=None):
+        load_signing_key()
         self.timeout = validate_timeout(timeout)
         self.deadline = validate_timeout(deadline)
         self.store = store
@@ -86,6 +88,7 @@ def main():
     parser.add_argument("--poll-interval", type=float, default=1)
     args = parser.parse_args()
     try:
+        load_signing_key()
         poll_interval = validate_timeout(args.poll_interval)
         timeout = validate_timeout(args.timeout)
         deadline = validate_timeout(args.deadline)

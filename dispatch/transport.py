@@ -6,6 +6,7 @@ import ssl
 from urllib.parse import quote
 
 from dispatch.destinations import parse_destination, public_address
+from dispatch.signatures import load_signing_key, signature_headers
 
 
 class DeliveryRejected(ValueError):
@@ -56,13 +57,14 @@ def deliver(event, policy, timeout=5):
     target = quote(parsed.path or "/", safe="/%:@!$&'()*+,;=-._~")
     if parsed.query:
         target += "?" + quote(parsed.query, safe="/%?:@!$&'()*+,;=-._~")
+    headers = {"Content-Type": "application/json", "X-Dispatch-Event-ID": event.id}
+    signing_key = load_signing_key()
+    if signing_key is not None:
+        headers.update(signature_headers(signing_key, event.id, payload))
     address = resolve_destination(host, port)
     connection = PinnedHTTPSConnection(host, port, address, timeout)
     try:
-        connection.request("POST", target, payload, {
-            "Content-Type": "application/json",
-            "X-Dispatch-Event-ID": event.id,
-        })
+        connection.request("POST", target, payload, headers)
         response = connection.getresponse()
         if 300 <= response.status < 400:
             raise DeliveryRejected("redirect refused")

@@ -33,6 +33,7 @@ flowchart LR
 - Workers claim events atomically, persist attempt outcomes, and recover expired leases with stale-completion checks.
 - Transient failures use capped exponential backoff and a total attempt limit.
 - Delivery revalidates allowed origins and public DNS results, pins the connection address, verifies TLS hostnames, and refuses redirects.
+- Optional [HMAC-SHA256 signatures](docs/signatures.md) authenticate the raw body, event ID, and attempt timestamp.
 - Child-process deadlines bound delivery execution. JSON logs, delivery history, and queue metrics expose outcomes.
 
 SQLite provides a compact local deployment with serialized writes. Delivery is at least once: timeouts and lease recovery can overlap a receiver's earlier acceptance, so receivers must deduplicate the stable `X-Dispatch-Event-ID`. The API binds to loopback and is currently unauthenticated. Public deployment and production usage are not established.
