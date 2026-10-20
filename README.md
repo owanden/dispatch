@@ -1,32 +1,46 @@
 # Dispatch
 
-Durable webhook delivery service.
+A durable webhook delivery service that retains events through receiver failures, retries transient errors, and exposes what happened to each attempt.
 
-SQLite event storage, idempotent enqueueing, and a local HTTP API. Reusing a key with a different payload or destination returns a conflict. Pending events survive process restarts.
+## Run the demo
 
-Requires Python 3.12 or newer. The application has no external Python dependencies. Tests also require the OpenSSL executable to generate temporary HTTPS certificates.
+Requires Python 3.12+ and the OpenSSL executable. No Python packages or external services are needed.
 
 ```sh
-python -m dispatch.api --db events.db --port 8080 --allow-origin https://example.com
-python -m dispatch.worker --db events.db --allow-origin https://example.com --timeout 5 --deadline 15 --max-attempts 3
-python -m dispatch.worker --db events.db --allow-origin https://example.com --continuous --poll-interval 1
+python examples/demo.py
+```
+
+The demo starts a temporary local HTTPS receiver, submits an event through the HTTP API, checks idempotent enqueueing, records a 503 response, and verifies that the retry cannot run early. It then reopens the database, recreates the worker, advances the demo clock by 30 seconds, and delivers the same event successfully with a 204 response. It finishes by inspecting attempt history and queue metrics. Temporary servers, database, and certificates are cleaned up on exit.
+
+[Recorded output](docs/demo-output.txt) comes from a successful run. This is a functional demonstration, not a performance benchmark. The demo alone redirects destination resolution to its loopback receiver and trusts its ephemeral certificate; production destination restrictions are unchanged. It does not exercise a forced process crash.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    Client --> API[HTTP API]
+    API --> DB[(SQLite events and attempts)]
+    DB --> Worker[Worker with claim lease]
+    Worker --> Child[Isolated delivery process]
+    Child --> Receiver[Allowed HTTPS receiver]
+    Child --> Outcome[HTTP outcome or error]
+    Outcome --> DB
+    DB --> Retry[Bounded retry schedule]
+    Retry --> Worker
+```
+
+- Transactional enqueueing and idempotency keys prevent duplicate stored events.
+- Workers claim events atomically, persist attempt outcomes, and recover expired leases with stale-completion checks.
+- Transient failures use capped exponential backoff and a total attempt limit.
+- Delivery revalidates allowed origins and public DNS results, pins the connection address, verifies TLS hostnames, and refuses redirects.
+- Child-process deadlines bound delivery execution. JSON logs, delivery history, and queue metrics expose outcomes.
+
+SQLite provides a compact local deployment with serialized writes. Delivery is at least once: timeouts and lease recovery can overlap a receiver's earlier acceptance, so receivers must deduplicate the stable `X-Dispatch-Event-ID`. The API binds to loopback and is currently unauthenticated. Public deployment and production usage are not established.
+
+## Verify and operate
+
+```sh
 python -m unittest discover -s tests -v
 ```
 
-The API binds to `127.0.0.1`. `POST /events` accepts a JSON object with `destination` (HTTPS URL) and `payload` (object), plus an `Idempotency-Key` header of up to 256 characters. Bodies are limited to 64 KiB. Successful requests return 202 with the stored event. Conflicting reuse returns 409. `GET /events/{id}` returns the event or 404. `GET /events/{id}/delivery` returns a read-only snapshot of delivery status, retry_at (Unix seconds or null), total attempt_count, and the latest 100 attempts in chronological order. Each attempt includes its timestamps, HTTP status/error category, and current lease_expires_at (Unix seconds or null). attempts_truncated indicates older omitted attempts. Unknown events return 404; storage failures return 503. This view omits the event payload, destination, and idempotency key and does not trigger retries or lease recovery.
-
-Enqueueing requires an explicitly permitted HTTPS origin. Repeat `--allow-origin` for multiple origins. Each entry contains a hostname and optional port, without a path or query. Hostnames are case-insensitive, and omitted ports equal 443. Subdomains and other ports require separate entries. Unlisted origins return 403; invalid destinations return 400. No configured origins means all enqueue requests are denied. Private IP literals, local hostnames, credentials, fragments, and ambiguous URL syntax are rejected.
-
-The delivery transport rechecks the origin policy, rejects DNS answers containing nonpublic addresses, and connects directly to a validated address while verifying the original TLS hostname. It sends JSON with an X-Dispatch-Event-ID header and refuses redirects. Each attempt resolves the destination again. Socket operations use a configurable timeout (five seconds by default). The worker runs each delivery in a child process with a separate --deadline (15 seconds by default), covering child startup after process creation, DNS resolution, and the HTTP exchange. Expiry terminates and reaps the child before recording delivery_deadline_exceeded. Operating-system process creation and cleanup can add overhead; database operations are outside this delivery deadline. Direct calls to the low-level transport retain only socket timeouts.
-
-Storage supports transactional pending-event claims and durable delivery attempts. A claim moves one event to delivering and creates its unfinished attempt together. Completing an attempt records an HTTP status or error category and updates the event to delivered for 2xx responses or failed otherwise. Duplicate completion is rejected. Existing event databases are extended without replacing their records. Worker claims receive a lease lasting the configured delivery deadline plus 30 seconds (45 seconds by default). Before claiming work, a worker recovers up to 100 expired leases in a transaction, records lease_expired, and applies retry backoff and the total attempt limit. Completed attempts release their leases. Old attempt IDs cannot overwrite a recovered or newer attempt. Low-level claims made without a lease, including pre-upgrade unfinished claims, are not recovered automatically.
-
-By default, the worker command processes at most one due event and prints whether an event was processed. --continuous keeps polling for ready events and due retries; --poll-interval sets the idle wait in seconds (default 1). Ctrl+C or supported termination signals stop new claims while allowing the active attempt and its outcome storage to finish. Shutdown wakes an idle worker immediately. Continuous mode prints the number of processed attempts when it exits. Delivery children use a separate process group/session so worker shutdown does not interrupt them through shared console signals. Storage and unexpected execution failures exit the loop. It requires its own explicit permitted origins, rechecks stored destinations, invokes the transport, and records HTTP outcomes or fixed error categories without storing raw exception text. Transient failures are scheduled for retry and remain pending until due; single-event mode processes at most one due event. HTTP 408, 429, and 5xx responses, plus timeout, deadline, DNS, and connection errors, are retryable. Policy rejection, certificate errors, and other permanent failures remain failed. --max-attempts includes the first attempt and defaults to 3; set it to 1 to disable retries. Backoff starts at 30 seconds, doubles after each retryable failure, and is capped at 300 seconds. Exhausted events remain failed with their complete attempt history. Schedules survive restarts and are saved atomically with outcomes. If outcome storage fails or execution is interrupted, the claim remains unfinished until lease recovery; repeating the command does not immediately resend that event.
-
-Recovery uses persisted wall-clock expiry times. A lease expiring does not terminate an old worker or orphaned delivery child; recovery and a retry can overlap an original request if a process stalls, the clock changes, or the parent dies. The deadline plus 30-second margin reduces ordinary overlap but is not a guarantee. Forced termination can leave an unfinished attempt for later recovery. Retry attempts retain the same X-Dispatch-Event-ID; receivers should deduplicate it because a timeout or lost response can occur after acceptance. An unfinished claim does not prove whether the receiver accepted the request. The API only stores events; it does not invoke the transport. Authentication is pending; the API is intended for local use.
-
-HTTPS integration tests start a loopback receiver with an ephemeral certificate and send real TLS requests from delivery child processes. Only the test child redirects resolved addresses to this receiver and trusts the temporary certificate. Production destination restrictions remain unchanged. Tests cover payload/event identity, certificate trust and hostname rejection, redirect refusal, and retry outcome persistence without external network requests.
-
-`GET /metrics` returns an aggregate JSON snapshot with captured_at (Unix seconds), event counts by status, ready_events, scheduled_retries, unfinished_attempts, expired_leases, recovered_attempts, and oldest_ready_age_seconds. Scheduled retries exclude those already due; recovered_attempts counts retained lease_expired outcomes. Oldest-ready age measures time since event creation, including earlier attempts, and is null when no ready event exists. Negative age caused by clock changes is clamped to zero. Reads do not run recovery or expose event IDs, destinations, keys, or payloads. This endpoint is JSON, not Prometheus text format, and shares the local API's unauthenticated access.
-
-The worker CLI writes one JSON record per completed attempt to stderr and keeps its final processed summary on stdout. Records include timestamp (Unix seconds), type, event_id, attempt_id, outcome, and elapsed_seconds covering execution and outcome storage. attempt_finished means the attempt outcome was persisted; a retryable failure can still leave the event pending. claims_recovered reports the committed recovery count. Unexpected execution and completion-storage failures log attempt_execution_failed or attempt_completion_failed with exception_type and then propagate; unfinished attempts retain their recovery behavior. Structured records omit payloads, destinations, idempotency keys, raw exception messages, and tracebacks. The CLI may still emit its normal unhandled-exception traceback when it exits on an error. Library users configure the dispatch.worker logger themselves.
+[Operations reference](docs/operations.md) covers API routes, worker commands, timeouts, retries, recovery limits, metrics, and structured logs. Tests include a real local HTTPS receiver, certificate rejection, DNS checks, concurrency, injected storage failures, and retry persistence.

@@ -1,0 +1,11 @@
+Dispatch local demo: temporary HTTPS receiver and accelerated retry clock
+Enqueue: pending
+Idempotency: repeated key returned the same event
+First delivery: HTTP 503; retry persisted for 30 seconds later
+Early poll: no eligible event
+Restart: event, attempt history, and retry schedule retained
+Second delivery: HTTP 204; delivered
+Receiver: two real HTTPS requests with one stable event ID
+Attempt history: 503, 204
+Queue: delivered=1, pending=0, delivering=0, failed=0
+PASS: local HTTPS demo; retry clock advanced without a real 30-second wait
