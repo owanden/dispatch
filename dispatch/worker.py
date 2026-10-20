@@ -1,5 +1,7 @@
 import argparse
 import json
+import logging
+import time
 import signal
 from contextlib import contextmanager
 from threading import Event
@@ -8,6 +10,13 @@ from dispatch.delivery import run_delivery, validate_timeout
 from dispatch.destinations import DestinationPolicy
 from dispatch.retries import RetryPolicy
 from dispatch.store import EventStore
+
+
+logger = logging.getLogger("dispatch.worker")
+
+
+def record(kind, *, level=logging.INFO, **fields):
+    logger.log(level, json.dumps({"timestamp": time.time(), "type": kind, **fields}, allow_nan=False))
 
 
 @contextmanager
@@ -33,12 +42,25 @@ class Worker:
         self.retry_policy = RetryPolicy() if retry_policy is None else retry_policy
 
     def process_next(self):
-        self.store.recover_expired(retry_policy=self.retry_policy)
+        recovered = self.store.recover_expired(retry_policy=self.retry_policy)
+        if recovered:
+            record("claims_recovered", count=recovered)
         claim = self.store.claim_next(lease_seconds=self.deadline + 30)
         if claim is None:
             return False
-        outcome = self.executor(claim.event, self.policy, timeout=self.timeout, deadline=self.deadline)
-        self.store.finish_attempt(claim.attempt_id, retry_policy=self.retry_policy, **outcome)
+        started = time.monotonic()
+        identifiers = {"event_id": claim.event.id, "attempt_id": claim.attempt_id}
+        try:
+            outcome = self.executor(claim.event, self.policy, timeout=self.timeout, deadline=self.deadline)
+        except Exception as error:
+            record("attempt_execution_failed", level=logging.ERROR, **identifiers, exception_type=type(error).__name__)
+            raise
+        try:
+            self.store.finish_attempt(claim.attempt_id, retry_policy=self.retry_policy, **outcome)
+        except Exception as error:
+            record("attempt_completion_failed", level=logging.ERROR, **identifiers, exception_type=type(error).__name__)
+            raise
+        record("attempt_finished", **identifiers, outcome=outcome, elapsed_seconds=time.monotonic() - started)
         return True
 
 
@@ -71,6 +93,7 @@ def main():
         retry_policy = RetryPolicy(max_attempts=args.max_attempts)
     except ValueError as error:
         parser.error(str(error))
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     worker = Worker(EventStore(args.db), policy, timeout, deadline, retry_policy=retry_policy)
     stop_event = Event()
     with shutdown_signals(stop_event):
