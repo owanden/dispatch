@@ -35,6 +35,25 @@ As in the demo, only the example delivery child maps its destination to loopback
 
 Environment: Windows 11, AMD64, Python 3.12.8. Exact SQLite, TLS library, certificate-tool versions and logical CPU count are in each raw report. Database and certificate setup/server startup are outside measured batch/drain intervals. Hostnames, user paths, and credentials are omitted. The operating system and local filesystem, other machine activity, interpreter startup, and SQLite connection/transaction costs influence these results.
 
+## Repeated trials, October 21
+
+Three fresh pairs ran sequentially in baseline/retry order using the unchanged harness and source checkout `edba88cf1a8aa3121d7b279c62a6800c4e1ee10c`. Each run used a new temporary database, receiver and certificate, the same 20-event payload, one worker and no signing. There were no warmups or simultaneous benchmark runs. All six reports have the same recorded environment as the original samples: Windows 11 AMD64, 16 logical CPUs, Python 3.12.8, SQLite 3.45.3 and OpenSSL 3.1.0. Other host activity was not controlled.
+
+Run the two commands in the reproduction section three times, using distinct output filenames. The retained files below are the direct harness outputs. Counts, event identities, receiver sequences, retry intervals and all distribution summaries were independently recomputed from their observations.
+
+| Mode / trial (raw JSON) | Drain (s) | Delivered / attempts | Attempt p95 (ms) | Accepted-to-delivered p95 (s) | Retry interval min..max (s) |
+|---|---:|---:|---:|---:|---:|
+| [baseline 1](benchmarks/windows-repeated-2026-10-21/baseline-1.json) | 5.143 | 20 / 20 | 266.47 | 4.918 | n/a |
+| [retry 1](benchmarks/windows-repeated-2026-10-21/retry-1.json) | 35.519 | 20 / 24 | 562.44 | 34.384 | 30.253..30.587 |
+| [baseline 2](benchmarks/windows-repeated-2026-10-21/baseline-2.json) | 4.999 | 20 / 20 | 261.52 | 4.742 | n/a |
+| [retry 2](benchmarks/windows-repeated-2026-10-21/retry-2.json) | 35.933 | 20 / 24 | 274.99 | 34.822 | 30.255..30.310 |
+| [baseline 3](benchmarks/windows-repeated-2026-10-21/baseline-3.json) | 6.736 | 20 / 20 | 800.23 | 6.503 | n/a |
+| [retry 3](benchmarks/windows-repeated-2026-10-21/retry-3.json) | 35.374 | 20 / 24 | 339.93 | 34.502 | 30.245..30.653 |
+
+Worker drain across the three runs per mode: baseline: median 5.143 s, observed range 4.999..6.736 s; retry: median 35.519 s, observed range 35.374..35.933 s. These are medians of per-run drain durations, not pooled latency percentiles or confidence intervals. Every run delivered 20 events without permanent failures; the retry runs each persisted four 503-to-204 sequences with real retry delays of at least 30 seconds.
+
+The baseline spread is noticeable on this host. No implementation was optimized between trials, so the faster samples are not evidence of a speedup. Three small repetitions do not establish stable capacity, explain host variance, or replace a concurrency/size sweep. The retry workload remains dominated by its intentional waiting interval. No WAN, DNS, signing, crash-recovery or production claim follows from these results.
+
 ## Metric definitions and limits
 
 - Enqueue latency spans the client HTTP request through reading the complete 202 response. Batch throughput divides event count by the complete sequential enqueue interval.

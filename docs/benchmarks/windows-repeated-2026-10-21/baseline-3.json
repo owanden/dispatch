@@ -1,0 +1,513 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-10-21T23:30:28.176265+00:00",
+  "environment": {
+    "python": "3.12.8",
+    "os": "Windows",
+    "os_release": "11",
+    "architecture": "AMD64",
+    "logical_cpus": 16,
+    "sqlite": "3.45.3",
+    "tls": "OpenSSL 3.1.0 14 Mar 2023",
+    "certificate_tool": "OpenSSL 3.1.0 14 Mar 2023 (Library: OpenSSL 3.1.0 14 Mar 2023)"
+  },
+  "workload": {
+    "events": 20,
+    "payload_data_bytes": 1024,
+    "retry_every": 0,
+    "workers": 1,
+    "poll_seconds": 0.05,
+    "retry_delay_seconds": 30,
+    "signing_enabled": false,
+    "transport": "local HTTPS with example-only pinned loopback resolution",
+    "enqueue": "sequential HTTP batch before worker starts"
+  },
+  "summary": {
+    "delivered": 20,
+    "failed": 0,
+    "attempts": 20,
+    "receiver_status_counts": {
+      "204": 20
+    },
+    "enqueue_batch_seconds": 0.1812968000303954,
+    "enqueue_events_per_second": 110.3163431271092,
+    "worker_drain_seconds": 6.7359195000026375,
+    "delivered_events_per_worker_second": 2.969156623678797,
+    "enqueue": {
+      "count": 20,
+      "p50_seconds": 0.008980600046925247,
+      "p95_seconds": 0.009970400016754866,
+      "max_seconds": 0.01067059999331832
+    },
+    "enqueue_to_delivered": {
+      "count": 20,
+      "p50_seconds": 3.7368930999655277,
+      "p95_seconds": 6.502554500009865,
+      "max_seconds": 6.735996900009923
+    },
+    "child": {
+      "count": 20,
+      "p50_seconds": 0.23199040000326931,
+      "p95_seconds": 0.3168100999901071,
+      "max_seconds": 0.35658530006185174
+    },
+    "worker_attempt": {
+      "count": 20,
+      "p50_seconds": 0.2596714999526739,
+      "p95_seconds": 0.800227600033395,
+      "max_seconds": 0.9112842000322416
+    },
+    "receiver_503_to_204": {
+      "count": 0,
+      "p50_seconds": null,
+      "p95_seconds": null,
+      "max_seconds": null
+    }
+  },
+  "events": [
+    {
+      "event_id": "7f742bfa-ab9c-4407-9980-320b77174b36",
+      "index": 0,
+      "accepted_seconds": 0.08013360004406422,
+      "enqueue_seconds": 0.01067059999331832,
+      "delivered_seconds": 1.163384999963455,
+      "enqueue_to_delivered_seconds": 1.0832513999193907
+    },
+    {
+      "event_id": "d51bc10f-d98a-4112-b1b8-936f776b4697",
+      "index": 1,
+      "accepted_seconds": 0.0901379999704659,
+      "enqueue_seconds": 0.009970400016754866,
+      "delivered_seconds": 1.4844440000597388,
+      "enqueue_to_delivered_seconds": 1.3943060000892729
+    },
+    {
+      "event_id": "6f416318-f791-4dbc-8299-e6dc49dabc93",
+      "index": 2,
+      "accepted_seconds": 0.09871579997707158,
+      "enqueue_seconds": 0.00856079999357462,
+      "delivered_seconds": 1.7880635999608785,
+      "enqueue_to_delivered_seconds": 1.689347799983807
+    },
+    {
+      "event_id": "b0cb5531-a858-4bb5-9624-f82da5aa5e4d",
+      "index": 3,
+      "accepted_seconds": 0.10811819997616112,
+      "enqueue_seconds": 0.009381599957123399,
+      "delivered_seconds": 2.04479309997987,
+      "enqueue_to_delivered_seconds": 1.936674900003709
+    },
+    {
+      "event_id": "a3377e6f-e973-4031-80de-c8cb9b31d280",
+      "index": 4,
+      "accepted_seconds": 0.1175304000498727,
+      "enqueue_seconds": 0.009394700056873262,
+      "delivered_seconds": 2.4201357000274584,
+      "enqueue_to_delivered_seconds": 2.3026052999775857
+    },
+    {
+      "event_id": "d1c99905-5703-4526-9b94-19fbf6eddefa",
+      "index": 5,
+      "accepted_seconds": 0.12710299994796515,
+      "enqueue_seconds": 0.009551299968734384,
+      "delivered_seconds": 2.752517699962482,
+      "enqueue_to_delivered_seconds": 2.6254147000145167
+    },
+    {
+      "event_id": "a301d5a8-46a5-4d8f-86c4-89b192e4fd46",
+      "index": 6,
+      "accepted_seconds": 0.13572090002708137,
+      "enqueue_seconds": 0.008601100067608058,
+      "delivered_seconds": 3.066710800048895,
+      "enqueue_to_delivered_seconds": 2.930989900021814
+    },
+    {
+      "event_id": "24895dd6-398f-4987-87a9-125bbfb5ad79",
+      "index": 7,
+      "accepted_seconds": 0.1438825000077486,
+      "enqueue_seconds": 0.008141699945554137,
+      "delivered_seconds": 3.4039058999624103,
+      "enqueue_to_delivered_seconds": 3.2600233999546617
+    },
+    {
+      "event_id": "623b8602-c560-4c65-95f7-81d4431b985c",
+      "index": 8,
+      "accepted_seconds": 0.15340509999077767,
+      "enqueue_seconds": 0.009506199974566698,
+      "delivered_seconds": 3.6540850000455976,
+      "enqueue_to_delivered_seconds": 3.50067990005482
+    },
+    {
+      "event_id": "2a69ac50-1477-4fcd-82c3-25c300a1ec0f",
+      "index": 9,
+      "accepted_seconds": 0.1623686000239104,
+      "enqueue_seconds": 0.008947300026193261,
+      "delivered_seconds": 3.899261699989438,
+      "enqueue_to_delivered_seconds": 3.7368930999655277
+    },
+    {
+      "event_id": "dbbdcabf-3d87-47cc-b5d6-65b628e08f23",
+      "index": 10,
+      "accepted_seconds": 0.17104980000294745,
+      "enqueue_seconds": 0.008660799940116704,
+      "delivered_seconds": 4.142688499996439,
+      "enqueue_to_delivered_seconds": 3.971638699993491
+    },
+    {
+      "event_id": "b654add6-dac2-4070-8de4-2d82aee96657",
+      "index": 11,
+      "accepted_seconds": 0.17953109997324646,
+      "enqueue_seconds": 0.00846119993366301,
+      "delivered_seconds": 4.393967899959534,
+      "enqueue_to_delivered_seconds": 4.214436799986288
+    },
+    {
+      "event_id": "486db61b-9e35-4139-8b21-b865a7861adb",
+      "index": 12,
+      "accepted_seconds": 0.1888088999548927,
+      "enqueue_seconds": 0.0092569999396801,
+      "delivered_seconds": 4.6392926999833435,
+      "enqueue_to_delivered_seconds": 4.450483800028451
+    },
+    {
+      "event_id": "971f3935-21ea-41ca-9171-e171ac488aa3",
+      "index": 13,
+      "accepted_seconds": 0.197817699983716,
+      "enqueue_seconds": 0.008986799977719784,
+      "delivered_seconds": 4.930645699962042,
+      "enqueue_to_delivered_seconds": 4.732827999978326
+    },
+    {
+      "event_id": "7bbcb642-bd2b-4f3a-a0ef-ec2c0704c7d0",
+      "index": 14,
+      "accepted_seconds": 0.20648000005166978,
+      "enqueue_seconds": 0.00864390004426241,
+      "delivered_seconds": 5.17248579999432,
+      "enqueue_to_delivered_seconds": 4.96600579994265
+    },
+    {
+      "event_id": "e8f6dd97-f2f2-4259-b6a8-bbd70ff4bd5a",
+      "index": 15,
+      "accepted_seconds": 0.21560790005605668,
+      "enqueue_seconds": 0.00910300004761666,
+      "delivered_seconds": 5.974120300030336,
+      "enqueue_to_delivered_seconds": 5.758512399974279
+    },
+    {
+      "event_id": "2d3f6262-1f84-45e5-a55c-7fc5b2b7a627",
+      "index": 16,
+      "accepted_seconds": 0.22491930006071925,
+      "enqueue_seconds": 0.009287000051699579,
+      "delivered_seconds": 6.235015099984594,
+      "enqueue_to_delivered_seconds": 6.010095799923874
+    },
+    {
+      "event_id": "4ef62fbb-70e9-463c-8a10-43d3ee43eb5d",
+      "index": 17,
+      "accepted_seconds": 0.23392050003167242,
+      "enqueue_seconds": 0.008980600046925247,
+      "delivered_seconds": 6.479196000029333,
+      "enqueue_to_delivered_seconds": 6.2452754999976605
+    },
+    {
+      "event_id": "61198ce0-a242-498c-8a28-26b25da40237",
+      "index": 18,
+      "accepted_seconds": 0.24216340004932135,
+      "enqueue_seconds": 0.008222500095143914,
+      "delivered_seconds": 6.744717900059186,
+      "enqueue_to_delivered_seconds": 6.502554500009865
+    },
+    {
+      "event_id": "d7f1a6f4-6f79-418a-9605-8046ec4bfe80",
+      "index": 19,
+      "accepted_seconds": 0.2507080000359565,
+      "enqueue_seconds": 0.008526500081643462,
+      "delivered_seconds": 6.986704900045879,
+      "enqueue_to_delivered_seconds": 6.735996900009923
+    }
+  ],
+  "attempts": [
+    {
+      "event_id": "7f742bfa-ab9c-4407-9980-320b77174b36",
+      "outcome": {
+        "status_code": 204
+      },
+      "child_seconds": 0.21817120001651347,
+      "worker_seconds": 0.9112842000322416
+    },
+    {
+      "event_id": "d51bc10f-d98a-4112-b1b8-936f776b4697",
+      "outcome": {
+        "status_code": 204
+      },
+      "child_seconds": 0.30285079998429865,
+      "worker_seconds": 0.31969489995390177
+    },
+    {
+      "event_id": "6f416318-f791-4dbc-8299-e6dc49dabc93",
+      "outcome": {
+        "status_code": 204
+      },
+      "child_seconds": 0.2845344999805093,
+      "worker_seconds": 0.302231700043194
+    },
+    {
+      "event_id": "b0cb5531-a858-4bb5-9624-f82da5aa5e4d",
+      "outcome": {
+        "status_code": 204
+      },
+      "child_seconds": 0.23584880004636943,
+      "worker_seconds": 0.2555427000625059
+    },
+    {
+      "event_id": "a3377e6f-e973-4031-80de-c8cb9b31d280",
+      "outcome": {
+        "status_code": 204
+      },
+      "child_seconds": 0.35658530006185174,
+      "worker_seconds": 0.3739671000512317
+    },
+    {
+      "event_id": "d1c99905-5703-4526-9b94-19fbf6eddefa",
+      "outcome": {
+        "status_code": 204
+      },
+      "child_seconds": 0.31348640006035566,
+      "worker_seconds": 0.3310866999672726
+    },
+    {
+      "event_id": "a301d5a8-46a5-4d8f-86c4-89b192e4fd46",
+      "outcome": {
+        "status_code": 204
+      },
+      "child_seconds": 0.2958118999376893,
+      "worker_seconds": 0.3127205000491813
+    },
+    {
+      "event_id": "24895dd6-398f-4987-87a9-125bbfb5ad79",
+      "outcome": {
+        "status_code": 204
+      },
+      "child_seconds": 0.3168100999901071,
+      "worker_seconds": 0.3356643000151962
+    },
+    {
+      "event_id": "623b8602-c560-4c65-95f7-81d4431b985c",
+      "outcome": {
+        "status_code": 204
+      },
+      "child_seconds": 0.22998109995387495,
+      "worker_seconds": 0.24887210002634674
+    },
+    {
+      "event_id": "2a69ac50-1477-4fcd-82c3-25c300a1ec0f",
+      "outcome": {
+        "status_code": 204
+      },
+      "child_seconds": 0.2268600999377668,
+      "worker_seconds": 0.24387700005900115
+    },
+    {
+      "event_id": "dbbdcabf-3d87-47cc-b5d6-65b628e08f23",
+      "outcome": {
+        "status_code": 204
+      },
+      "child_seconds": 0.22415780008304864,
+      "worker_seconds": 0.24214880005456507
+    },
+    {
+      "event_id": "b654add6-dac2-4070-8de4-2d82aee96657",
+      "outcome": {
+        "status_code": 204
+      },
+      "child_seconds": 0.23199040000326931,
+      "worker_seconds": 0.2500833999365568
+    },
+    {
+      "event_id": "486db61b-9e35-4139-8b21-b865a7861adb",
+      "outcome": {
+        "status_code": 204
+      },
+      "child_seconds": 0.22693310002796352,
+      "worker_seconds": 0.24400269996840507
+    },
+    {
+      "event_id": "971f3935-21ea-41ca-9171-e171ac488aa3",
+      "outcome": {
+        "status_code": 204
+      },
+      "child_seconds": 0.27305689989589155,
+      "worker_seconds": 0.28995889995712787
+    },
+    {
+      "event_id": "7bbcb642-bd2b-4f3a-a0ef-ec2c0704c7d0",
+      "outcome": {
+        "status_code": 204
+      },
+      "child_seconds": 0.22464549995493144,
+      "worker_seconds": 0.2407233000267297
+    },
+    {
+      "event_id": "e8f6dd97-f2f2-4259-b6a8-bbd70ff4bd5a",
+      "outcome": {
+        "status_code": 204
+      },
+      "child_seconds": 0.23168309999164194,
+      "worker_seconds": 0.800227600033395
+    },
+    {
+      "event_id": "2d3f6262-1f84-45e5-a55c-7fc5b2b7a627",
+      "outcome": {
+        "status_code": 204
+      },
+      "child_seconds": 0.23338960006367415,
+      "worker_seconds": 0.2596714999526739
+    },
+    {
+      "event_id": "4ef62fbb-70e9-463c-8a10-43d3ee43eb5d",
+      "outcome": {
+        "status_code": 204
+      },
+      "child_seconds": 0.22641400003340095,
+      "worker_seconds": 0.24290309997741133
+    },
+    {
+      "event_id": "61198ce0-a242-498c-8a28-26b25da40237",
+      "outcome": {
+        "status_code": 204
+      },
+      "child_seconds": 0.2471057999646291,
+      "worker_seconds": 0.26421659998595715
+    },
+    {
+      "event_id": "d7f1a6f4-6f79-418a-9605-8046ec4bfe80",
+      "outcome": {
+        "status_code": 204
+      },
+      "child_seconds": 0.22365349996834993,
+      "worker_seconds": 0.24061139998957515
+    }
+  ],
+  "receiver_requests": [
+    {
+      "event_id": "7f742bfa-ab9c-4407-9980-320b77174b36",
+      "status": 204,
+      "at_seconds": 0.4606064000399783,
+      "body_bytes": 1045
+    },
+    {
+      "event_id": "d51bc10f-d98a-4112-b1b8-936f776b4697",
+      "status": 204,
+      "at_seconds": 1.4580376000376418,
+      "body_bytes": 1045
+    },
+    {
+      "event_id": "6f416318-f791-4dbc-8299-e6dc49dabc93",
+      "status": 204,
+      "at_seconds": 1.759686299948953,
+      "body_bytes": 1045
+    },
+    {
+      "event_id": "b0cb5531-a858-4bb5-9624-f82da5aa5e4d",
+      "status": 204,
+      "at_seconds": 2.01821650005877,
+      "body_bytes": 1045
+    },
+    {
+      "event_id": "a3377e6f-e973-4031-80de-c8cb9b31d280",
+      "status": 204,
+      "at_seconds": 2.390986999962479,
+      "body_bytes": 1045
+    },
+    {
+      "event_id": "d1c99905-5703-4526-9b94-19fbf6eddefa",
+      "status": 204,
+      "at_seconds": 2.723118399968371,
+      "body_bytes": 1045
+    },
+    {
+      "event_id": "a301d5a8-46a5-4d8f-86c4-89b192e4fd46",
+      "status": 204,
+      "at_seconds": 3.0346483000321314,
+      "body_bytes": 1045
+    },
+    {
+      "event_id": "24895dd6-398f-4987-87a9-125bbfb5ad79",
+      "status": 204,
+      "at_seconds": 3.3755928999744356,
+      "body_bytes": 1045
+    },
+    {
+      "event_id": "623b8602-c560-4c65-95f7-81d4431b985c",
+      "status": 204,
+      "at_seconds": 3.6272870999528095,
+      "body_bytes": 1045
+    },
+    {
+      "event_id": "2a69ac50-1477-4fcd-82c3-25c300a1ec0f",
+      "status": 204,
+      "at_seconds": 3.8717060000635684,
+      "body_bytes": 1045
+    },
+    {
+      "event_id": "dbbdcabf-3d87-47cc-b5d6-65b628e08f23",
+      "status": 204,
+      "at_seconds": 4.11633140000049,
+      "body_bytes": 1046
+    },
+    {
+      "event_id": "b654add6-dac2-4070-8de4-2d82aee96657",
+      "status": 204,
+      "at_seconds": 4.36733879998792,
+      "body_bytes": 1046
+    },
+    {
+      "event_id": "486db61b-9e35-4139-8b21-b865a7861adb",
+      "status": 204,
+      "at_seconds": 4.612584299989976,
+      "body_bytes": 1046
+    },
+    {
+      "event_id": "971f3935-21ea-41ca-9171-e171ac488aa3",
+      "status": 204,
+      "at_seconds": 4.905007099965587,
+      "body_bytes": 1046
+    },
+    {
+      "event_id": "7bbcb642-bd2b-4f3a-a0ef-ec2c0704c7d0",
+      "status": 204,
+      "at_seconds": 5.1451109000481665,
+      "body_bytes": 1046
+    },
+    {
+      "event_id": "e8f6dd97-f2f2-4259-b6a8-bbd70ff4bd5a",
+      "status": 204,
+      "at_seconds": 5.398463499965146,
+      "body_bytes": 1046
+    },
+    {
+      "event_id": "2d3f6262-1f84-45e5-a55c-7fc5b2b7a627",
+      "status": 204,
+      "at_seconds": 6.207525699981488,
+      "body_bytes": 1046
+    },
+    {
+      "event_id": "4ef62fbb-70e9-463c-8a10-43d3ee43eb5d",
+      "status": 204,
+      "at_seconds": 6.450930200051516,
+      "body_bytes": 1046
+    },
+    {
+      "event_id": "61198ce0-a242-498c-8a28-26b25da40237",
+      "status": 204,
+      "at_seconds": 6.717463999986649,
+      "body_bytes": 1046
+    },
+    {
+      "event_id": "d7f1a6f4-6f79-418a-9605-8046ec4bfe80",
+      "status": 204,
+      "at_seconds": 6.960915200063027,
+      "body_bytes": 1046
+    }
+  ]
+}
