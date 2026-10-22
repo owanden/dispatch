@@ -56,4 +56,4 @@ python -m unittest discover -s tests -v
 
 [Local delivery measurements](docs/benchmarks.md) include repeatable baseline/failure commands, raw observations, timing definitions, and limitations.
 
-[Build and install a wheel](docs/installation.md) to run `dispatch-api` and `dispatch-worker` outside the checkout. CI checks isolated installation on Windows and Linux.
+[Download the v0.1.0 release](https://github.com/owanden/dispatch/releases/tag/v0.1.0) or [build and install a wheel](docs/installation.md) to run `dispatch-api` and `dispatch-worker` outside the checkout. CI checks isolated installation on Windows and Linux.

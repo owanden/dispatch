@@ -1,6 +1,18 @@
 # Installable wheel
 
-The `owanden-dispatch` distribution installs the `dispatch` package and `dispatch-api` / `dispatch-worker` commands. It requires Python 3.12+ and has no third-party runtime dependencies. The wheel contains runtime code and distribution metadata; demos, benchmarks, private files, and databases are not bundled. No package-index publication or hosted deployment is configured.
+The `owanden-dispatch` distribution installs the `dispatch` package and `dispatch-api` / `dispatch-worker` commands. It requires Python 3.12+ and has no third-party runtime dependencies. The wheel contains runtime code and distribution metadata; demos, benchmarks, private files, and databases are not bundled. A downloadable wheel is published on GitHub Releases; no package-index publication or hosted deployment is configured.
+
+## Download without a checkout
+
+Open [Dispatch v0.1.0](https://github.com/owanden/dispatch/releases/tag/v0.1.0) and download `requirements.txt` from its assets. Create and activate a virtual environment as shown below, then install:
+
+```sh
+python -m pip install --no-deps --require-hashes -r requirements.txt
+```
+
+The file pins the exact wheel URL and SHA256, so pip rejects bytes that do not match. The installation needs GitHub network access, but no GitHub sign-in, source checkout, build tools or package-index lookup. The release also includes the wheel for offline installation, `SHA256SUMS`, and `release.json` identifying the source commit, build environment and actual package verification. Download the wheel in advance to use the offline command below, adjusting its path to the downloaded file.
+
+Checksums detect mismatched downloads; they are not a separate publisher signature. Local verification uses the exact uploaded wheel in a fresh environment. Windows/Linux CI separately builds and checks the same source commit; its wheel files may differ in archive metadata. This is not a byte-identical build claim. The release excludes demos, which remain runnable from a source checkout.
 
 ## Build and verify
 
@@ -54,4 +66,4 @@ The API binds to loopback and has no authentication. Set permitted origins expli
 
 ## CI artifacts
 
-The [Tests workflow](../.github/workflows/test.yml) builds the wheel and runs the isolated smoke on Windows and Linux with Python 3.12. Successful packaging jobs retain the wheel as a GitHub Actions artifact named `dispatch-wheel-Windows` or `dispatch-wheel-Linux`. Check the workflow's exact commit and successful result before downloading an artifact. The normal Linux source test job remains separate. These jobs do not publish to PyPI, create releases, start containers, or provision infrastructure.
+The [Tests workflow](../.github/workflows/test.yml) builds the wheel and runs the isolated smoke on Windows and Linux with Python 3.12. Successful packaging jobs retain the wheel as a GitHub Actions artifact named `dispatch-wheel-Windows` or `dispatch-wheel-Linux`. Check the workflow's exact commit and successful result before downloading an artifact. The normal Linux source test job remains separate. These jobs retain per-run artifacts; they do not publish to PyPI, create releases, start containers, or provision infrastructure. The separately published versioned release above retains its own exact wheel and verification record.
