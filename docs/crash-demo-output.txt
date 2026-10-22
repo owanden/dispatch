@@ -1,0 +1,11 @@
+Dispatch crash demo: real worker kill, real lease expiry and retry waiting
+Enqueue: one persisted synthetic event
+Receiver: HTTP 204 accepted; delivery child exited; worker paused before outcome storage
+Crash: fixture-owned worker killed and exit confirmed
+Reopen: event delivering, unfinished attempt and lease retained
+Restart: separate worker skipped the unexpired claim; waiting for real 32-second lease
+Recovery: lease_expired persisted; waiting for default real 30-second retry delay
+Redelivery: two real HTTPS acceptances with one stable event ID
+Stored attempt history: lease_expired, HTTP 204
+Receiver deduplication: one simulated SQLite effect row
+PASS: real worker termination and recovery without clock advancement

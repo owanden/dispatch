@@ -14,6 +14,14 @@ The demo starts a temporary local HTTPS receiver, submits an event through the H
 
 [Recorded output](docs/demo-output.txt) comes from a successful run. This is a functional demonstration, not a performance benchmark. The demo alone redirects destination resolution to its loopback receiver and trusts its ephemeral certificate; production destination restrictions are unchanged. It does not exercise a forced process crash.
 
+## Force a worker crash
+
+```sh
+python examples/crash_demo.py --output reports/crash-demo.json
+```
+
+This separate [crash-recovery demonstration](docs/crash-recovery.md) kills its own worker after a local HTTPS receiver accepts an event but before Dispatch saves the outcome. It waits for actual lease expiry and retry backoff, starts a separate worker process, and observes two acceptances with one receiver-deduplicated simulated effect. Allow roughly a minute. No clock is advanced; the injected pause is example-only, and the production runtime is unchanged.
+
 ## Architecture
 
 ```mermaid

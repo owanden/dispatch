@@ -1,0 +1,56 @@
+{
+  "captured_at": "2026-10-22T02:10:51.083742+00:00",
+  "environment": {
+    "os": "Windows",
+    "python": "3.12.8",
+    "sqlite": "3.45.3"
+  },
+  "event_id": "6d564f78-0dce-41d5-92e4-16ed120b9dd6",
+  "killed_worker_returncode": 1,
+  "worker_deadline_seconds": 2,
+  "lease_seconds": 32,
+  "retry_delay_seconds": 30,
+  "lease_expires_at": 1792635020.5289104,
+  "recovery": {
+    "type": "recovered",
+    "retry_at": 1792635050.61588,
+    "observed_at": 1792635020.6264603
+  },
+  "elapsed_seconds": 63.01600000006147,
+  "state": "delivered",
+  "attempts": [
+    {
+      "id": "3895977f-a3aa-48d5-acdb-e3aab47c1644",
+      "event_id": "6d564f78-0dce-41d5-92e4-16ed120b9dd6",
+      "started_at": "2026-10-22 02:09:48",
+      "finished_at": "2026-10-22 02:10:20",
+      "status_code": null,
+      "error": "lease_expired"
+    },
+    {
+      "id": "72bdaece-4732-4388-9737-b371e5f083b9",
+      "event_id": "6d564f78-0dce-41d5-92e4-16ed120b9dd6",
+      "started_at": "2026-10-22 02:10:50",
+      "finished_at": "2026-10-22 02:10:51",
+      "status_code": 204,
+      "error": null
+    }
+  ],
+  "receiver_requests": [
+    {
+      "event_id": "6d564f78-0dce-41d5-92e4-16ed120b9dd6",
+      "payload": {
+        "case": "synthetic-worker-crash"
+      },
+      "received_at": 1792634988.8395166
+    },
+    {
+      "event_id": "6d564f78-0dce-41d5-92e4-16ed120b9dd6",
+      "payload": {
+        "case": "synthetic-worker-crash"
+      },
+      "received_at": 1792635051.00309
+    }
+  ],
+  "receiver_effect_rows": 1
+}
